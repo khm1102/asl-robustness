@@ -19,14 +19,17 @@ from . import features as F
 from .cnn_exp import Seq, build_model, rs
 
 
-def main(seeds, epochs, size=64):
+def main(seeds, epochs, size=64, only=None):
     y = np.load(C.PROC / "y.npy")
     illus = np.load(C.PROC / "illus.npy")
     d = np.load(C.PROC / "lm_clean.npz")
     lm, det = d["lm"], d["det"]
     x = rs(np.load(C.PROC / "x96.npy"), size)
-    out = {}
+    f = C.RESULTS / "h1_split.json"
+    out = json.loads(f.read_text()) if f.exists() else {}  # 이어서 실행
     for sk in ("group", "random"):
+        if only and sk != only:
+            continue
         sp = np.load(C.PROC / f"split_{sk}.npy")
         tr, va, te = (np.where(sp == k)[0] for k in range(3))
         ph = ~illus[te]
@@ -51,12 +54,13 @@ def main(seeds, epochs, size=64):
             r["cnn"].append(float((p == y[te])[ph].mean()))
             print(sk, "cnn seed", s, r["cnn"][-1], flush=True)
         out[sk] = r
-        (C.RESULTS / "h1_split.json").write_text(json.dumps(out, indent=1))
+        f.write_text(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--epochs", type=int, default=40)
+    ap.add_argument("--only", default=None, choices=["group", "random"])
     a = ap.parse_args()
-    main(a.seeds, a.epochs)
+    main(a.seeds, a.epochs, only=a.only)
