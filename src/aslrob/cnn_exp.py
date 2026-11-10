@@ -25,7 +25,7 @@ def build_model(n_classes: int, size: int = C.SIZE_CNN, widths=(16, 32, 64, 96))
     x = layers.Rescaling(1 / 255.0)(inp)
     for f in widths:
         x = layers.Conv2D(f, 3, padding="same", use_bias=False)(x)
-        x = layers.BatchNormalization()(x)
+        x = layers.BatchNormalization(momentum=0.9)(x)
         x = layers.ReLU()(x)
         x = layers.MaxPooling2D()(x)
     x = layers.GlobalAveragePooling2D()(x)
@@ -33,7 +33,7 @@ def build_model(n_classes: int, size: int = C.SIZE_CNN, widths=(16, 32, 64, 96))
     out = layers.Dense(n_classes, activation="softmax")(x)
     m = keras.Model(inp, out)
     m.compile(
-        optimizer=keras.optimizers.Adam(1e-3),
+        optimizer=keras.optimizers.Adam(2e-3),
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
@@ -102,7 +102,7 @@ def main(variant, seeds, epochs, split_kind, conds, size):
             validation_data=(x[va].astype(np.float32), y[va]),
             epochs=epochs,
             verbose=2,
-            callbacks=[keras.callbacks.EarlyStopping(patience=6, restore_best_weights=True)],
+            callbacks=[keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True)],
         )
         train_s = time.time() - t
         for cond in conds:
