@@ -1,17 +1,15 @@
 # 인수인계 (다음 세션/자동 재개용)
 
-## 현재 상태 (자동 재개 2회차)
-- 완료: 데이터 준비, 랜드마크, 변형 테스트셋, RF/DT(EXP-003), CNN plain/aug 3시드(EXP-004), 쌍체 통계+혼동행렬(EXP-005), H1 분할 비교(EXP-006), 가설 갱신(`hypotheses.md`), 최종 요약(`REPORT.md`).
-- 실행 중인 작업 없음. 핵심 산출물: `results/*.json`, `results/stats.json`, `results/figs/confusion_*.png`.
-- 환경: `KERAS_BACKEND=torch`, `uv` 는 `$HOME/.local/bin`. 서버 CPU는 AVX 없음(TensorFlow/jax/mediapipe 1.x 불가). cron 환경에서는 heredoc/`python -c` 실행이 차단되므로 스크립트는 파일로 작성해 실행.
-- 주의: 같은 프로젝트를 다른 세션이 동시에 만질 수 있음(`h1_split --only random` 중복 실행 발견, 내 쪽 완료 후 중복 프로세스 종료).
+## 현재 상태 (2026-11-10 종료 시점)
+- **완료**: 데이터 준비, 랜드마크, 변형 테스트셋, RF/DT(EXP-003), CNN plain/aug(EXP-004), 통계(EXP-005), 분할 누수 H1(EXP-006), 검출 임계값(EXP-007), 최종 요약 `docs/REPORT.md`, 가설 H1~H7 판정.
+- 실행 중인 학습 없음. 자동 재개 크론은 일을 마쳐 정지함.
 
-## 남은 할 일 (선택, 우선순위 순)
-1. det-only 기준 쌍체 비교(`stats.py` 확장) — EXP-005에서 `[미수행]`.
-2. 전이학습/사전학습 가벼운 CNN(AVX 없는 CPU 주의) — CNN이 불리한 설정이라는 한계 분리용.
-3. conf 0.1/0.5 검출 임계 민감도, 분할 시드 반복(H1 CNN 불확정 해소).
-4. 사진 전용 학습 CNN, 96×96 학습(시간 많이 소요).
-5. README 결과 표 정리(현재는 `docs/REPORT.md`가 요약).
+## 남은 선택 과제 (우선순위 순)
+1. **직접 촬영 테스트셋**(팀원): 조명/배경/위치별 이미지를 `testsets` 형식(x96, lm, det, idx 대신 별도 y)으로 만들어 같은 모델에 평가. 외적 타당성의 핵심.
+2. 어두운 조건에서 **검출 전 밝기 보정**(CLAHE/감마) 후 MediaPipe → RF 붕괴가 줄어드는지 (EXP-007 한계).
+3. CNN을 공정하게 키우기: 96×96/128, 전이학습(가벼운 사전학습 모델; AVX 없음 주의), 사진만 학습 ablation → "CNN이 clean에서 낮은 이유" 분리.
+4. 통계 보강: 시드 10개, 시드 분산 반영 CI, 다중비교 보정.
+5. 발표 자료 초안(REPORT.md 마지막 절 기반).
 
 ## 규칙 (사용자 지시)
 - 기능별로 자주 커밋·푸시, **Claude 서명/Co-Authored-By 넣지 말 것**. 레포는 private `khm1102/asl-robustness`.
