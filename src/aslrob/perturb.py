@@ -56,12 +56,17 @@ def clutter(img, rng, n=10, border=0.22):
 
 
 def affine(img, scale=1.0, dx=0.0, dy=0.0, rot=0.0):
-    """scale: 0.6=손이 작아짐, 1.3=확대. dx,dy: 이미지 크기 비율 이동. rot: 도. 경계는 reflect."""
+    """scale: 0.6=손이 작아짐, 1.3=확대. dx,dy: 이미지 크기 비율 이동. rot: 도. 빈 영역은 가장자리 평균색으로 채움
+    (reflect는 손이 거울상으로 복제되어 가짜 손을 만들기 때문에 사용하지 않음)."""
     h, w = img.shape[:2]
     M = cv2.getRotationMatrix2D((w / 2, h / 2), rot, scale)
     M[0, 2] += dx * w
     M[1, 2] += dy * h
-    return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    edge = np.concatenate([img[0], img[-1], img[:, 0], img[:, -1]]).mean(0)
+    fill = tuple(float(v) for v in edge)
+    return cv2.warpAffine(
+        img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=fill
+    )
 
 
 # 이름 → (함수, 파라미터). 각 변형은 시드로 재현.
