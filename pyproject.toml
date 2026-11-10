@@ -24,7 +24,7 @@ dev = [
 
 [tool.uv]
 # mediapipe pulls opencv-contrib-python (needs libGL); keep only the headless build
-override-dependencies = ["opencv-contrib-python; sys_platform == 'never'"]
+override-dependencies = ["opencv-contrib-python; sys_platform == 'never'", "jax; sys_platform == 'never'", "jaxlib; sys_platform == 'never'"]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 [[tool.uv.index]]

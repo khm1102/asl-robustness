@@ -1,0 +1,33 @@
+{
+  "n_images": 4198,
+  "letters": [
+    "A",
+    "B",
+    "D",
+    "F",
+    "I",
+    "L",
+    "U",
+    "V",
+    "W",
+    "Y"
+  ],
+  "dhash_thr": 20,
+  "n_clusters": 4165,
+  "n_clusters_size_gt1": 23,
+  "images_in_dup_clusters": 56,
+  "largest_cluster": 9,
+  "random_split_test_leak_frac": 0.016666666666666666,
+  "group_split_sizes": [
+    2518,
+    840,
+    840
+  ],
+  "random_split_sizes": [
+    2518,
+    840,
+    840
+  ],
+  "img_w_median": 287,
+  "img_h_median": 282
+}

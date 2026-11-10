@@ -8,6 +8,7 @@ data/*
 results/*
 !results/.gitkeep
 !results/*.md
+!results/*.json
 models/
 *.keras
 *.pt
