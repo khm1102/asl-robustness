@@ -2,6 +2,7 @@
 
 ## 현재 상태
 - 완료: 데이터 준비, 랜드마크, 변형 테스트셋, RF/DT 평가(EXP-003), CNN 사전 점검.
+- **갱신(자동 재개 1회차)**: plain 완료, `docs/experiments/EXP-004` 초안 커밋. aug는 진행 중(로그 epoch 12/40 시점) → 완료되면 EXP-004에 aug 추가 후 2~6번 진행.
 - 실행 중: `python -m aslrob.cnn_exp --variant plain|aug --seeds 3 --epochs 40` (순차). 로그 `/opt/data/cache/scratch/cnn_plain.out`, `cnn_aug.out`. 완료 시 `results/cnn_{plain,aug}_group.json`, `results/cnn_preds_*_group.npz` 생성.
 - 환경: `KERAS_BACKEND=torch`, `uv` 는 `$HOME/.local/bin`. 서버 CPU는 AVX 없음(TensorFlow/jax/mediapipe 1.x 불가).
 
