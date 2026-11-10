@@ -1,4 +1,4 @@
-# EXP-004. CNN 환경 변화 강건성 — 초안 (plain만 완료, aug 진행 중)
+# EXP-004. CNN 환경 변화 강건성 (plain+aug 완료; 통계는 EXP-005)
 
 - 검증 대상: H2, H3(aug 대기), H5(CNN 측)
 - 코드: `aslrob.cnn_exp --variant plain --seeds 3 --epochs 40`; 결과: `results/cnn_plain_group.json`, `results/cnn_preds_plain_group.npz`
@@ -22,3 +22,8 @@
 - dark 조건은 이미 무작위 수준(10클래스 → 0.10)이다. dark_0.5에서도 0.110. 밝기 분포 이동 때문으로 보이나 `[미확인]`.
 - 바닥(0.10)에 닿아 있어 clean이 낮은 CNN의 절대 하락폭은 구조적으로 작게 잡힌다. 상대 하락도 병행 보고해야 한다.
 - H2: 방향은 일치(어두움에서 CNN 거의 전면 붕괴)하나 RF e2e도 dark_0.25에서 0.297까지 하락한다. 검정은 `stats.py`에서 수행 예정 — 아직 상태 변경 안 함.
+
+## 갱신: CNN-aug 완료 (3 시드, `results/cnn_aug_group.json`)
+- 사진 정확도(시드 평균±sd) / clean 대비 하락 %p: clean 0.477±0.066, dark_0.5 0.318±0.107 (15.9), dark_0.25 0.147±0.036 (33.0), dark_0.12 0.096±0.008 (38.1), clutter 0.374±0.063 (10.3), shift 0.423±0.055 (5.4), scale_small 0.284±0.027 (19.3), scale_large 0.386±0.069 (9.2), rot15 0.460±0.059 (1.7).
+- aug는 학습 증강(어둠·잡동사니·이동/크기)이 테스트 변형과 같은 종류라 해당 조건에서 plain보다 개선. rot15는 증강에서 제외(미학습 변형)했고 하락은 plain과 같음(1.7%p).
+- 대가: clean 정확도 plain 0.577 → aug 0.477. 통계는 EXP-005.
