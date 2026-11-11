@@ -2,15 +2,17 @@
 
 ## 실행 (서버, Docker)
 ```bash
-# 1) 모델 저장 (한 번)
+# 1) 모델 저장 + 웹용 최소 데이터 번들 (한 번)
 KERAS_BACKEND=torch uv run python -m aslrob.train_final      # models/*.keras, rf_geom.joblib
-# 2) 컨테이너
+uv run python -m aslrob.web.bundle                           # web_data/ (159MB, git 제외)
+# 2) 컨테이너 (모델·데이터·문서·결과는 이미지에 COPY됨 → 바뀌면 --build)
 docker compose up -d --build
 # 3) 접속 (자체 서명 https → 브라우저 경고에서 '고급 → 계속')
-https://<서버IP>:8080
+https://<서버IP>:8080        # 이 환경: https://192.168.1.56:8080
 ```
-- 필요한 것: `data/processed/`(prepare·landmarks·testsets 산출물), `results/`, `models/`.
-- 포트 8080만 사용, 메모리 1.3GB 제한.
+- 이 환경의 Docker 데몬(dind)은 호스트 파일시스템을 공유하지 않아 bind mount가 빈 폴더로 보인다 → 파일을 이미지에 COPY하고, 저장한 촬영 사진(`captures`)과 인증서는 named volume.
+- 포트 8080만 사용, 메모리 1.3GB 제한(실측: 유휴 약 230MB, 추론 시 약 540MB).
+- 검증: `python -m aslrob.web.check_models`(저장 모델 vs 실험 결과, EXP-008), `pytest`(API 일관성).
 
 ## 로컬 실행 (본인 PC에서, 웹캠이 더 빠름)
 ```bash
