@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    image: asl-robustness-web
+    container_name: asl-robustness-web
+    environment:
+      HOST_IP: "192.168.1.56"
+    ports:
+      - "8080:8080"
+    mem_limit: 1300m
+    volumes:
+      - ./src:/app/src:ro
+      - ./docs:/app/docs:ro
+      - ./results:/app/results:ro
+      - ./models:/app/models:ro
+      - ./data/processed:/app/data/processed:ro
+      - ./data/captures:/app/data/captures
+      - ./.certs:/certs
+    restart: unless-stopped

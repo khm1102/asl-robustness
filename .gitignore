@@ -12,3 +12,6 @@ results/*
 models/
 *.keras
 *.pt
+.certs/
+data/captures/*
+!data/captures/.gitkeep
