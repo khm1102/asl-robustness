@@ -31,8 +31,30 @@
     <label><input type="checkbox" id="flipSend"> 좌우 반전해서 전송(왼손용)</label>
     <span id="fps" class="muted"></span>
   </div>
+  <div class="panel" id="practice">
+    <div class="controls">
+      <label>모드
+        <select id="mode"><option value="free">자유 인식</option><option value="word">단어 따라하기</option><option value="letter">글자 하나 따라하기</option></select>
+      </label>
+      <label id="wordSelWrap" style="display:none">단어 <select id="wordSel"></select></label>
+      <label id="judgeWrap" style="display:none">성공 판정 모델
+        <select id="judge"><option value="rf">RF</option><option value="cnn_plain">CNN-plain</option><option value="cnn_aug">CNN-aug</option></select>
+      </label>
+      <button id="skipBtn" style="display:none">건너뛰기</button>
+    </div>
+    <div id="wordRow" class="wordrow"></div>
+    <div id="practiceMsg" class="muted"></div>
+    <div id="refStrip" class="refstrip"></div>
+    <p class="muted small">참고 그림: Wikimedia Commons “Sign language X.svg”(wpclipart, 퍼블릭 도메인). 표준 ASL 지문자 그림이며, 사람마다 손 방향·모양이 조금씩 달라도 됩니다. 도감의 글자를 누르면 그 글자를 연습합니다.</p>
+  </div>
   <p class="hint">손을 <b>초록 정사각형 안</b>에 넣고 대상 알파벳(<span id="letterList"></span>) 중 하나를 보여 주세요. 환경 변화를 고르면 서버가 그 변형(어둡게, 잡동사니 등)을 프레임에 적용한 뒤 인식하므로, 실제로 불을 끄지 않아도 강건성을 비교할 수 있습니다.</p>
-  <div class="grid2">
+  <div class="grid3a">
+    <div class="panel" id="refPanel" style="display:none">
+      <h3>따라 할 수어 <span id="refLetter" class="badge ok"></span></h3>
+      <div class="canvaswrap"><img id="refImg" alt="참고 수어" class="refbig"></div>
+      <div id="refHint" class="note"></div>
+      <div class="holdbar"><div id="holdFill"></div></div>
+    </div>
     <div class="panel">
       <h3>내 카메라 <span class="muted">(정사각 크롭)</span></h3>
       <div class="canvaswrap"><canvas id="view" width="384" height="384"></canvas></div>
@@ -42,6 +64,7 @@
       <div class="canvaswrap"><canvas id="seen" width="384" height="384"></canvas></div>
     </div>
   </div>
+  <div id="practiceResult"></div>
   <div class="grid3" id="preds">
     <div class="pred" id="pred-rf"><h4>RF · 손 관절(geom)</h4><div class="big">–</div><div class="bars"></div><div class="note"></div></div>
     <div class="pred" id="pred-cnn_plain"><h4>CNN · plain</h4><div class="big">–</div><div class="bars"></div><div class="note"></div></div>

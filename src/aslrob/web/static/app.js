@@ -34,9 +34,75 @@ function opt(sel, items, fmt) { sel.innerHTML = items.map(v => `<option value="$
   opt($("#capEnv"), ST.envs, e => ENVNAME[e] || e);
   $("#tsLetter").innerHTML += ST.letters.map(l => `<option>${l}</option>`).join("");
   $("#letterList").textContent = ST.letters.join(" ");
+  opt($("#wordSel"), WORDS);
+  drawPractice();
   ["tsCond", "tsKind", "tsLetter", "tsShow", "tsLm"].forEach(id => $("#" + id).onchange = () => loadTs(true));
   $("#cond").onchange = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({cond: $("#cond").value})); };
 })();
+
+// ---------------------------------------------------------------- 따라하기(연습)
+const WORDS = ["FLY", "BUY", "WAY", "DAY", "LAB", "LID", "BAD", "FAIL", "WILD", "DIAL", "AVID", "FLAW", "DUAL", "VIA"];
+const HINT = {
+  A: "주먹을 쥐고 엄지를 주먹 옆에 붙입니다.", B: "손가락을 모두 펴서 붙이고 엄지는 손바닥 앞으로 접습니다.",
+  D: "검지만 세우고, 나머지 손가락 끝을 엄지와 맞대어 동그랗게 만듭니다.", F: "엄지와 검지 끝을 맞대어 원을 만들고 나머지 세 손가락은 폅니다.",
+  I: "주먹을 쥐고 새끼손가락만 세웁니다.", L: "검지는 위로, 엄지는 옆으로 펴서 L 모양을 만듭니다.",
+  U: "검지와 중지를 붙여서 세우고 나머지는 접습니다.", V: "검지와 중지를 벌려 V 모양을 만듭니다.",
+  W: "검지·중지·약지 세 손가락을 벌려 세우고 엄지로 새끼손가락을 누릅니다.", Y: "엄지와 새끼손가락만 펴고 나머지는 접습니다."};
+const HOLD = 5;  // 판정 모델이 연속 5프레임 맞히면 성공
+const MODELS3 = [["rf", "RF"], ["cnn_plain", "CNN-plain"], ["cnn_aug", "CNN-aug"]];
+let P = {mode: "free", word: [], pos: 0, streak: 0, stats: {}, finished: false};
+
+function startPractice() {
+  if (!ST) return;  // /api/status 로딩 전
+  const mode = $("#mode").value; P.mode = mode; P.pos = 0; P.streak = 0; P.finished = false; P.stats = {};
+  $("#wordSelWrap").style.display = mode === "word" ? "" : "none";
+  $("#judgeWrap").style.display = mode === "free" ? "none" : "";
+  $("#skipBtn").style.display = mode === "free" ? "none" : "";
+  $("#refPanel").style.display = mode === "free" ? "none" : "";
+  $(".grid3a").classList.toggle("practice", mode !== "free");
+  $("#practiceResult").innerHTML = "";
+  if (mode === "word") P.word = $("#wordSel").value.split("");
+  else if (mode === "letter") P.word = [P.word.length === 1 && P.word[0] ? P.word[0] : ST.letters[Math.floor(Math.random() * ST.letters.length)]];
+  else P.word = [];
+  drawPractice();
+}
+function drawPractice() {
+  if (!ST) return;
+  const cur = P.word[P.pos];
+  $("#wordRow").innerHTML = P.mode === "free" ? "" : (P.mode === "word" ? `<div class="w">${P.word.join("")}</div>` : "") +
+    P.word.map((l, i) => `<div class="l ${i < P.pos || P.finished ? "done" : i === P.pos ? "cur" : ""}">${l}</div>`).join("");
+  $("#refStrip").innerHTML = ST.letters.map(l => `<div class="rc ${l === cur ? "cur" : ""}" data-l="${l}"><img src="/static/ref/${l}.png"><span>${l}</span></div>`).join("");
+  $$(".rc").forEach(el => el.onclick = () => { $("#mode").value = "letter"; P.mode = "letter"; P.word = [el.dataset.l]; P.pos = 0; P.finished = false; P.stats = {}; P.streak = 0; $("#practiceResult").innerHTML = ""; $("#judgeWrap").style.display = ""; $("#skipBtn").style.display = ""; $("#refPanel").style.display = ""; $(".grid3a").classList.add("practice"); $("#wordSelWrap").style.display = "none"; drawPractice(); });
+  if (P.mode === "free" || P.finished || !cur) { $("#practiceMsg").textContent = P.finished ? "완료!" : "도감에서 글자를 눌러 연습하거나, 모드를 바꿔 보세요."; if (P.finished) $("#refPanel").style.display = "none"; return; }
+  $("#refImg").src = `/static/ref/${cur}.png`; $("#refLetter").textContent = cur;
+  $("#refHint").textContent = HINT[cur];
+  $("#practiceMsg").textContent = `지금 만들 글자: ${cur}  (${P.pos + 1}/${P.word.length}) — 그림처럼 손 모양을 만들고 ${HOLD}프레임 유지하면 성공`;
+  $("#holdFill").style.width = "0";
+}
+function practiceStep(r) {
+  if (P.mode === "free" || P.finished) return;
+  const cur = P.word[P.pos]; if (!cur) return;
+  const st = P.stats[cur] || (P.stats[cur] = {n: 0, rf: 0, cnn_plain: 0, cnn_aug: 0, det: 0});
+  st.n++; st.det += r.det ? 1 : 0;
+  MODELS3.forEach(([k]) => { const p = r[k]; if (p && p.top[0].letter === cur) st[k]++; });
+  const j = r[$("#judge").value];
+  P.streak = j && j.top[0].letter === cur ? P.streak + 1 : 0;
+  $("#holdFill").style.width = Math.min(100, P.streak / HOLD * 100) + "%";
+  if (P.streak >= HOLD) {
+    P.streak = 0; P.pos++;
+    if (P.pos >= P.word.length) { P.finished = true; showPracticeResult(); }
+    drawPractice();
+  }
+}
+function showPracticeResult() {
+  const pct = (a, n) => n ? (a / n * 100).toFixed(0) + "%" : "–";
+  const rows = Object.entries(P.stats);
+  $("#practiceResult").innerHTML = `<div class="panel"><h3 class="pr-ok">완료! 연습 중 모델별 정답 프레임 비율</h3><table><tr><th>글자</th><th>프레임</th><th>손 검출</th><th>RF</th><th>CNN-plain</th><th>CNN-aug</th></tr>` +
+    rows.map(([l, s]) => `<tr><td>${l}</td><td>${s.n}</td><td>${pct(s.det, s.n)}</td><td>${pct(s.rf, s.n)}</td><td>${pct(s.cnn_plain, s.n)}</td><td>${pct(s.cnn_aug, s.n)}</td></tr>`).join("") +
+    `</table><p class="muted small">성공 직전까지 걸린 프레임이 대상이라 모델이 맞힐 때까지 시도한 오답 프레임이 많을수록 비율이 낮습니다. 같은 사람·환경 몇 번의 시도일 뿐이라 통계가 아닙니다.</p></div>`;
+}
+$("#mode").onchange = startPractice; $("#wordSel").onchange = startPractice;
+$("#skipBtn").onclick = () => { if (P.mode === "letter") { P.word = [ST.letters[Math.floor(Math.random() * ST.letters.length)]]; } else { P.pos = Math.min(P.pos + 1, P.word.length); if (P.pos >= P.word.length) { P.finished = true; showPracticeResult(); } } P.streak = 0; drawPractice(); };
 
 // ---------------------------------------------------------------- 실시간 웹캠
 let stream = null, ws = null, running = false, busy = false, lastSent = null, fpsT = [];
@@ -101,6 +167,7 @@ function render(r) {
   const b = $("#detBadge"); b.textContent = r.det ? "손 검출됨" : "검출 실패"; b.className = "badge " + (r.det ? "ok" : "bad");
   fillPred("#pred-rf", r.rf, r.det ? null : "MediaPipe가 손을 못 찾음 → 인식 실패(실험에서는 오답 처리)");
   fillPred("#pred-cnn_plain", r.cnn_plain); fillPred("#pred-cnn_aug", r.cnn_aug);
+  practiceStep(r);
   $("#timing").textContent = `전체 ${r.t_total.toFixed(0)} · MediaPipe ${r.t_mp.toFixed(0)} · RF ${r.t_rf.toFixed(0)} · CNN×2 ${r.t_cnn.toFixed(0)} · 변형 ${r.t_pert.toFixed(0)}`;
 }
 function fillPred(sel, p, note) {
