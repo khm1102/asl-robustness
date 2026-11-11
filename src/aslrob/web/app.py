@@ -163,11 +163,14 @@ def docs_list():
 
 
 # ---------------------------------------------------------------- 테스트셋 둘러보기
+WEB = C.ROOT / "web_data"  # python -m aslrob.web.bundle 로 생성
+
+
 @lru_cache(maxsize=1)
 def _ts_meta():
-    y = np.load(C.PROC / "y.npy")
-    illus = np.load(C.PROC / "illus.npy")
-    idx = np.load(C.PROC / "pert_test" / "clean.npz")["idx"]
+    m = np.load(WEB / "meta.npz")
+    y, illus = m["y"], m["illus"]
+    idx = np.arange(len(y))
     rf = np.load(C.RESULTS / "rf_preds_group.npz")
     pl = np.load(C.RESULTS / "cnn_preds_plain_group.npz")
     ag = np.load(C.RESULTS / "cnn_preds_aug_group.npz")
@@ -177,7 +180,7 @@ def _ts_meta():
 @lru_cache(maxsize=9)
 def _ts_cond(cond):
     y, illus, idx, rf, pl, ag = _ts_meta()
-    z = np.load(C.PROC / "pert_test" / f"{cond}.npz")
+    z = np.load(WEB / f"cond_{cond}.npz")
     return {
         "det": z["det"],
         "lm": z["lm"],
@@ -194,8 +197,7 @@ def _ts_images(cond):
     if cond in _img_cache:
         _img_cache.move_to_end(cond)
         return _img_cache[cond]
-    y, illus, idx, *_ = _ts_meta()
-    x = np.load(C.PROC / "x256.npy", mmap_mode="r")[idx]
+    x = np.load(WEB / "test256.npy", mmap_mode="r")
     k = list(perturb.CONDITIONS).index(cond)
     arr = perturb.apply(cond, x, seed=1000 + k)  # testsets.py 와 동일 → 실험에 쓴 바로 그 이미지
     _img_cache[cond] = arr

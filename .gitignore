@@ -15,3 +15,4 @@ models/
 .certs/
 data/captures/*
 !data/captures/.gitkeep
+web_data/

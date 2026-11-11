@@ -1,8 +1,6 @@
 __pycache__
 .venv
 data
-models
 .git
 .certs
-results
-docs
+web_data/*.tmp
