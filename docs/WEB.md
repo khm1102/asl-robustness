@@ -31,3 +31,8 @@ KERAS_BACKEND=torch uv run uvicorn aslrob.web.app:app --port 8000   # http://loc
 ## 주의
 - 라이브 예측은 학습 데이터(정적 사진 10개 알파벳: A B D F I L U V W Y) 범위만 맞다.
 - 라이브 결과는 눈으로 보는 참고용이며 통계적 결과가 아니다. 표본이 쌓인 평가는 “내 촬영 평가” 탭 또는 `EXP-005` 참고.
+
+## 레포에 포함된 산출물 / 제외된 것
+- 포함: `results/*.json`, `results/*preds*.npz`(시드별 예측), `results/figs/`(혼동행렬), `models/`(rf_geom.joblib, cnn_plain/aug.keras; 시드 0 재학습본, 약 3MB).
+- 제외(용량): `data/`(원본 parquet 71MB, 캐시 1GB), `web_data/`(159MB, 100MB 초과 파일 있음). 재생성: `prepare → landmarks → testsets → web.bundle`. 원본 데이터는 HF `Marxulia/asl_sign_languages_alphabets_v03`.
+- 따라서 새 클론에서 웹 데모의 라이브 탭은 `models/`만으로 동작하지만, ‘테스트셋 둘러보기’는 `web_data/` 재생성이 필요하다.
