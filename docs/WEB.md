@@ -36,3 +36,12 @@ KERAS_BACKEND=torch uv run uvicorn aslrob.web.app:app --port 8000   # http://loc
 - 포함: `results/*.json`, `results/*preds*.npz`(시드별 예측), `results/figs/`(혼동행렬), `models/`(rf_geom.joblib, cnn_plain/aug.keras; 시드 0 재학습본, 약 3MB).
 - 제외(용량): `data/`(원본 parquet 71MB, 캐시 1GB), `web_data/`(159MB, 100MB 초과 파일 있음). 재생성: `prepare → landmarks → testsets → web.bundle`. 원본 데이터는 HF `Marxulia/asl_sign_languages_alphabets_v03`.
 - 따라서 새 클론에서 웹 데모의 라이브 탭은 `models/`만으로 동작하지만, ‘테스트셋 둘러보기’는 `web_data/` 재생성이 필요하다.
+
+## 데이터 내려받기 (GitHub Release `data-v1`, 비공개 레포)
+```bash
+gh release download data-v1 -R khm1102/asl-robustness
+sha256sum -c SHA256SUMS.txt
+tar xzf asl-data-processed.tar.gz   # data/processed/, data/hf_v03.parquet
+tar xzf asl-web-data.tar.gz         # web_data/
+```
+- 원본 출처: HF `Marxulia/asl_sign_languages_alphabets_v03` (라이선스 미확인 `[미확인]` → 재배포 전에 확인).
