@@ -9,6 +9,20 @@ results/*
 !results/.gitkeep
 !results/*.md
 !results/*.json
-models/
-*.keras
 *.pt
+.certs/
+data/captures/*
+!data/captures/.gitkeep
+web_data/
+
+# 산출물: 작은 결과/모델은 추적 (재현·웹 데모용)
+!results/figs/
+!results/figs/*.png
+!results/*.npz
+!models/
+models/*
+!models/rf_geom.joblib
+!models/cnn_plain.keras
+!models/cnn_aug.keras
+!models/meta.json
+!*.keras

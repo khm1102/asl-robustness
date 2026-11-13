@@ -1,0 +1,19 @@
+# 주의: dind 데몬은 호스트 파일시스템을 공유하지 않아 bind mount 가 비어 보인다 → 필요한 파일은 이미지에 COPY.
+# 준비: python -m aslrob.train_final ; python -m aslrob.web.bundle  (models/, web_data/ 생성)
+services:
+  web:
+    build: .
+    image: asl-robustness-web
+    container_name: asl-robustness-web
+    environment:
+      HOST_IP: "192.168.1.56"
+    ports:
+      - "8080:8080"
+    mem_limit: 1300m
+    volumes:
+      - captures:/app/data/captures
+      - certs:/certs
+    restart: unless-stopped
+volumes:
+  captures:
+  certs:

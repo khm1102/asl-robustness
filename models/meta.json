@@ -1,0 +1,17 @@
+{
+ "letters": [
+  "A",
+  "B",
+  "D",
+  "F",
+  "I",
+  "L",
+  "U",
+  "V",
+  "W",
+  "Y"
+ ],
+ "cnn_size": 64,
+ "seed": 0,
+ "split": "group"
+}

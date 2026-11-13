@@ -1,0 +1,47 @@
+# 웹 데모 사용법
+
+## 실행 (서버, Docker)
+```bash
+# 1) 모델 저장 + 웹용 최소 데이터 번들 (한 번)
+KERAS_BACKEND=torch uv run python -m aslrob.train_final      # models/*.keras, rf_geom.joblib
+uv run python -m aslrob.web.bundle                           # web_data/ (159MB, git 제외)
+# 2) 컨테이너 (모델·데이터·문서·결과는 이미지에 COPY됨 → 바뀌면 --build)
+docker compose up -d --build
+# 3) 접속 (자체 서명 https → 브라우저 경고에서 '고급 → 계속')
+https://<서버IP>:8080        # 이 환경: https://192.168.1.56:8080
+```
+- 이 환경의 Docker 데몬(dind)은 호스트 파일시스템을 공유하지 않아 bind mount가 빈 폴더로 보인다 → 파일을 이미지에 COPY하고, 저장한 촬영 사진(`captures`)과 인증서는 named volume.
+- 포트 8080만 사용, 메모리 1.3GB 제한(실측: 유휴 약 230MB, 추론 시 약 540MB).
+- 검증: `python -m aslrob.web.check_models`(저장 모델 vs 실험 결과, EXP-008), `pytest`(API 일관성).
+
+## 로컬 실행 (본인 PC에서, 웹캠이 더 빠름)
+```bash
+uv sync
+KERAS_BACKEND=torch uv run uvicorn aslrob.web.app:app --port 8000   # http://localhost:8000 은 카메라 허용
+```
+
+## 탭
+1. **실시간 웹캠 — 따라하기 모드**: 수어를 모르는 사람을 위해 영단어(FLY, BUY, WAY, LAB …)를 먼저 텍스트로 보여 주고, 글자마다 참고 수어 그림 + 한국어 설명(손 모양)을 띄운다. 선택한 판정 모델이 연속 5프레임 맞히면 다음 글자로 넘어가고, 끝나면 글자별로 세 모델의 정답 프레임 비율을 표로 보여 준다. 아래 도감에서 글자를 눌러 그 글자만 연습할 수도 있다. 단어는 학습한 10개 알파벳(A B D F I L U V W Y)만으로 구성.
+   - **실시간 웹캠(자유 인식)**: 초록 정사각형 안에 손. 환경 변화(합성) 드롭다운으로 어둡게/잡동사니/이동/크기/회전을 켜면 서버가 적용한 뒤 인식. 오른쪽에 모델이 본 입력과 손 관절, 아래 세 모델 예측(확률 막대)과 지연시간.
+2. **테스트셋 둘러보기**: 실험에 쓴 변형 test 이미지를 조건/글자/“RF만 맞음”, “CNN만 맞음” 등으로 필터링, 정답과 세 모델 예측을 색으로 표시, 관절 오버레이.
+3. **실험 결과**: 조건별 막대그래프(정확도 / clean 대비 하락 / 검출 성공만 / 검출률), 표, 분할 누수·검출 임계값 부가 실험, 혼동행렬.
+4. **내 촬영 평가**: 라이브 탭에서 저장한 사진을 환경 태그별로 채점.
+5. **문서**: REPORT, 가설 대장, EXP/결정 기록을 렌더링.
+
+## 주의
+- 라이브 예측은 학습 데이터(정적 사진 10개 알파벳: A B D F I L U V W Y) 범위만 맞다.
+- 라이브 결과는 눈으로 보는 참고용이며 통계적 결과가 아니다. 표본이 쌓인 평가는 “내 촬영 평가” 탭 또는 `EXP-005` 참고.
+
+## 레포에 포함된 산출물 / 제외된 것
+- 포함: `results/*.json`, `results/*preds*.npz`(시드별 예측), `results/figs/`(혼동행렬), `models/`(rf_geom.joblib, cnn_plain/aug.keras; 시드 0 재학습본, 약 3MB).
+- 제외(용량): `data/`(원본 parquet 71MB, 캐시 1GB), `web_data/`(159MB, 100MB 초과 파일 있음). 재생성: `prepare → landmarks → testsets → web.bundle`. 원본 데이터는 HF `Marxulia/asl_sign_languages_alphabets_v03`.
+- 따라서 새 클론에서 웹 데모의 라이브 탭은 `models/`만으로 동작하지만, ‘테스트셋 둘러보기’는 `web_data/` 재생성이 필요하다.
+
+## 데이터 내려받기 (GitHub Release `data-v1`, 비공개 레포)
+```bash
+gh release download data-v1 -R khm1102/asl-robustness
+sha256sum -c SHA256SUMS.txt
+tar xzf asl-data-processed.tar.gz   # data/processed/, data/hf_v03.parquet
+tar xzf asl-web-data.tar.gz         # web_data/
+```
+- 원본 출처: HF `Marxulia/asl_sign_languages_alphabets_v03` (라이선스 미확인 `[미확인]` → 재배포 전에 확인).

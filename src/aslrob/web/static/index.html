@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASL 알파벳 인식 · CNN vs 손 관절 + RF</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>ASL 알파벳 인식 <small>CNN(픽셀) vs MediaPipe 손 관절 + Random Forest</small></h1>
+  <nav>
+    <button data-tab="live" class="active">실시간 웹캠</button>
+    <button data-tab="testset">테스트셋 둘러보기</button>
+    <button data-tab="results">실험 결과</button>
+    <button data-tab="mine">내 촬영 평가</button>
+    <button data-tab="docs">문서</button>
+  </nav>
+  <div id="status"></div>
+</header>
+
+<main>
+<!-- ============ 실시간 ============ -->
+<section id="tab-live" class="tab active">
+  <div class="controls">
+    <button id="camBtn" class="primary">카메라 시작</button>
+    <label>환경 변화(합성)
+      <select id="cond"></select>
+    </label>
+    <label><input type="checkbox" id="mirrorView" checked> 거울 보기</label>
+    <label><input type="checkbox" id="flipSend"> 좌우 반전해서 전송(왼손용)</label>
+    <span id="fps" class="muted"></span>
+  </div>
+  <div class="panel" id="practice">
+    <div class="controls">
+      <label>모드
+        <select id="mode"><option value="free">자유 인식</option><option value="word">단어 따라하기</option><option value="letter">글자 하나 따라하기</option></select>
+      </label>
+      <label id="wordSelWrap" style="display:none">단어 <select id="wordSel"></select></label>
+      <label id="judgeWrap" style="display:none">성공 판정 모델
+        <select id="judge"><option value="rf">RF</option><option value="cnn_plain">CNN-plain</option><option value="cnn_aug">CNN-aug</option></select>
+      </label>
+      <button id="skipBtn" style="display:none">건너뛰기</button>
+    </div>
+    <div id="wordRow" class="wordrow"></div>
+    <div id="practiceMsg" class="muted"></div>
+    <div id="refStrip" class="refstrip"></div>
+    <p class="muted small">참고 그림: Wikimedia Commons “Sign language X.svg”(wpclipart, 퍼블릭 도메인). 표준 ASL 지문자 그림이며, 사람마다 손 방향·모양이 조금씩 달라도 됩니다. 도감의 글자를 누르면 그 글자를 연습합니다.</p>
+  </div>
+  <p class="hint">손을 <b>초록 정사각형 안</b>에 넣고 대상 알파벳(<span id="letterList"></span>) 중 하나를 보여 주세요. 환경 변화를 고르면 서버가 그 변형(어둡게, 잡동사니 등)을 프레임에 적용한 뒤 인식하므로, 실제로 불을 끄지 않아도 강건성을 비교할 수 있습니다.</p>
+  <div class="grid3a">
+    <div class="panel" id="refPanel" style="display:none">
+      <h3>따라 할 수어 <span id="refLetter" class="badge ok"></span></h3>
+      <div class="canvaswrap"><img id="refImg" alt="참고 수어" class="refbig"></div>
+      <div id="refHint" class="note"></div>
+      <div class="holdbar"><div id="holdFill"></div></div>
+    </div>
+    <div class="panel">
+      <h3>내 카메라 <span class="muted">(정사각 크롭)</span></h3>
+      <div class="canvaswrap"><canvas id="view" width="384" height="384"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>모델이 실제로 본 입력 + 손 관절 <span id="detBadge" class="badge"></span></h3>
+      <div class="canvaswrap"><canvas id="seen" width="384" height="384"></canvas></div>
+    </div>
+  </div>
+  <div id="practiceResult"></div>
+  <div class="grid3" id="preds">
+    <div class="pred" id="pred-rf"><h4>RF · 손 관절(geom)</h4><div class="big">–</div><div class="bars"></div><div class="note"></div></div>
+    <div class="pred" id="pred-cnn_plain"><h4>CNN · plain</h4><div class="big">–</div><div class="bars"></div><div class="note"></div></div>
+    <div class="pred" id="pred-cnn_aug"><h4>CNN · aug (증강 학습)</h4><div class="big">–</div><div class="bars"></div><div class="note"></div></div>
+  </div>
+  <div class="panel">
+    <h3>지연시간 (ms)</h3>
+    <div id="timing" class="muted">–</div>
+    <p class="muted small">막대는 확률(RF는 트리 투표 비율)이며 보정된 신뢰도가 아닙니다. 서버 CPU(AVX 없음)에서 측정한 값이라 일반 PC보다 느립니다.</p>
+  </div>
+  <div class="panel">
+    <h3>이 프레임을 내 촬영 데이터로 저장</h3>
+    <label>정답 알파벳 <select id="capLabel"></select></label>
+    <label>환경 <select id="capEnv"></select></label>
+    <button id="capBtn">저장</button> <span id="capMsg" class="muted"></span>
+    <p class="muted small">변형이 켜져 있어도 <b>원본 프레임</b>이 저장됩니다. 저장한 사진은 “내 촬영 평가” 탭에서 세 모델로 채점됩니다.</p>
+  </div>
+</section>
+
+<!-- ============ 테스트셋 ============ -->
+<section id="tab-testset" class="tab">
+  <div class="controls">
+    <label>조건 <select id="tsCond"></select></label>
+    <label>대상 <select id="tsKind"><option value="photo">사진만</option><option value="all">전체</option><option value="illus">손 그림만</option></select></label>
+    <label>글자 <select id="tsLetter"><option value="">전체</option></select></label>
+    <label>보기 <select id="tsShow">
+      <option value="all">전부</option>
+      <option value="rf_wrong">RF가 틀린 것</option>
+      <option value="plain_wrong">CNN-plain이 틀린 것</option>
+      <option value="aug_wrong">CNN-aug가 틀린 것</option>
+      <option value="rf_ok_cnn_wrong">RF만 맞음</option>
+      <option value="cnn_ok_rf_wrong">CNN-plain만 맞음</option>
+    </select></label>
+    <label><input type="checkbox" id="tsLm" checked> 손 관절 표시</label>
+  </div>
+  <div id="tsSummary" class="summary"></div>
+  <p class="muted small">이미지는 실험에 쓴 바로 그 변형 테스트 이미지(그룹 분할 test 840장)이며, 예측은 학습 시드 0의 저장된 결과입니다(보고서의 수치는 3시드 평균). 초록 선=검출된 손 관절, “NO HAND”=MediaPipe 검출 실패(RF는 오답 처리).</p>
+  <div id="tsGrid" class="cards"></div>
+  <div class="controls"><button id="tsMore">더 보기</button></div>
+</section>
+
+<!-- ============ 결과 ============ -->
+<section id="tab-results" class="tab">
+  <div class="controls">
+    <label>지표
+      <select id="metric">
+        <option value="e2e">정확도 (검출 실패=오답, e2e)</option>
+        <option value="drop">clean 대비 하락(%p)</option>
+        <option value="det_only">정확도 (검출 성공만)</option>
+        <option value="det_rate">MediaPipe 검출률</option>
+      </select>
+    </label>
+    <span class="muted" id="resMeta"></span>
+  </div>
+  <div id="chart"></div>
+  <div id="resTable"></div>
+  <h3>부가 실험</h3>
+  <div id="extra"></div>
+  <h3>혼동행렬</h3>
+  <div id="figs" class="figs"></div>
+</section>
+
+<!-- ============ 내 촬영 ============ -->
+<section id="tab-mine" class="tab">
+  <div class="controls"><button id="evalBtn" class="primary">저장한 사진 채점</button> <span id="capCount" class="muted"></span></div>
+  <div id="evalOut"></div>
+  <p class="muted small">직접 촬영한 사진 평가는 합성 변형이 아닌 실제 환경 결과입니다(외적 타당성). 표본이 적으면 우연 변동이 크므로 환경당 알파벳당 최소 수십 장을 권장합니다.</p>
+</section>
+
+<!-- ============ 문서 ============ -->
+<section id="tab-docs" class="tab">
+  <div class="controls"><label>문서 <select id="docSel"></select></label></div>
+  <article id="docBody" class="doc"></article>
+</section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
